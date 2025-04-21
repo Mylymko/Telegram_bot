@@ -1,2 +1,1 @@
-web: python -m http.server $PORT
-worker: python run_bot.py
+web: gunicorn my_telegram_bot.wsgi

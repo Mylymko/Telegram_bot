@@ -1,19 +1,27 @@
 from django.db import models
+from django.contrib.auth import get_user_model
+
+User = get_user_model()
+
+class ExampleModel(models.Model):
+    name = models.CharField(max_length=100)
+    description = models.TextField()
 
 
 class BotLog(models.Model):
     command = models.CharField(max_length=100)
-    user = models.ForeignKey('User', on_delete=models.CASCADE, related_name="logs")
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="logs")
     timestamp = models.DateTimeField(auto_now_add=True)
 
-class User(models.Model):
+
+class TelegramUser(models.Model):
     chat_id = models.BigIntegerField(unique=True)
-    first_name = models.CharField(max_length=50)
-    last_name = models.CharField(max_length=50, null=True, blank=True)
-    created_at = models.DateTimeField(auto_now_add=True)
+    first_name = models.CharField(max_length=100, null=True, blank=True)
+    last_name = models.CharField(max_length=100, null=True, blank=True)
+    username = models.CharField(max_length=100, null=True, blank=True)
 
     def __str__(self):
-        return f'{self.first_name} {self.last_name}'
+        return self.username or str(self.chat_id)
 
 
 class RequestLog(models.Model):
@@ -23,3 +31,16 @@ class RequestLog(models.Model):
 
     def __str__(self):
         return f'{self.command} by {self.user.first_name}'
+
+
+class UserSettings(models.Model):
+    user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='settings')
+    language = models.CharField(max_length=10, default='en')
+    theme = models.CharField(max_length=20, default='classical')
+    notifications_enabled = models.BooleanField(default=True)
+
+
+    def __str__(self):
+        return f"Settings for {self.user.first_name}"
+
+

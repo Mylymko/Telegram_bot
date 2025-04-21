@@ -11,7 +11,15 @@ https://docs.djangoproject.com/en/5.2/ref/settings/
 """
 
 from pathlib import Path
+import os
+
+import dj_database_url
+import whitenoise
 from decouple import config
+from dotenv import load_dotenv
+import dj_database_url
+
+load_dotenv('.env')
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -21,12 +29,12 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # See https://docs.djangoproject.com/en/5.2/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = config('SECRET_KEY')
+SECRET_KEY = os.environ.get('SECRET_KEY')
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = config('DEBUG', default=False, cast=bool)
+DEBUG = os.environ.get('DEBUG') == 'True'
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = [os.environ.get('ALLOWED_HOSTS', '*')]
 
 
 # Application definition
@@ -50,6 +58,7 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
+    'whitenoise.middleware.WhiteNoiseMiddleware',
 ]
 
 ROOT_URLCONF = 'my_telegram_bot.urls'
@@ -76,14 +85,25 @@ WSGI_APPLICATION = 'my_telegram_bot.wsgi.application'
 
 # Database
 # https://docs.djangoproject.com/en/5.2/ref/settings/#databases
+DATABASES = {}
 
-DATABASES = {
-    'default': {
+if DEBUG:
+    DATABASES['default'] = {
         'ENGINE': 'django.db.backends.sqlite3',
         'NAME': BASE_DIR / 'db.sqlite3',
     }
-}
-
+else:
+    DATABASES['default'] = {
+        'ENGINE': 'django.db.backends.postgresql',
+        'DB_HOST': os.environ.get('DB_HOST'),
+        'DB_NAME': os.environ.get('DB_NAME'),
+        'DB_PORT': os.environ.get('DB_PORT'),
+        'DB_USER': os.environ.get('DB_USER'),
+        'DB_PASSWORD': os.environ.get('DB_PASSWORD'),
+    }
+    DATABASE_URL = os.environ.get('DATABASE_URL')
+    db_config = dj_database_url.config(default=DATABASE_URL, conn_max_age=600, conn_health_checks=True)
+    DATABASES['default'].update(db_config)
 
 # Password validation
 # https://docs.djangoproject.com/en/5.2/ref/settings/#auth-password-validators

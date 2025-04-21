@@ -2,6 +2,11 @@ from telegram import InlineKeyboardButton, InlineKeyboardMarkup
 from .models import UserSettings
 from telegram import Update
 from telegram.ext import ContextTypes
+from django.http import HttpResponse
+
+
+def home(request):
+    return HttpResponse("Welcome to my Telegram Bot!")
 
 
 async def settings(update: Update, context: ContextTypes.DEFAULT_TYPE):

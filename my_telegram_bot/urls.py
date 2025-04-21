@@ -14,9 +14,9 @@ Including another URLconf
     1. Import the include() function: from django.urls import include, path
     2. Add a URL to urlpatterns:  path('blog/', include('blog.urls'))
 """
-from django.http import HttpResponse
 from django.urls import path
+from bot.views import telegram_webhook
 
 urlpatterns = [
-    path('', lambda request: HttpResponse('Hello, world!')),
+    path('webhook/', telegram_webhook, name='telegram_webhook'),
 ]

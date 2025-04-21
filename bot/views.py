@@ -2,7 +2,30 @@ from telegram import InlineKeyboardButton, InlineKeyboardMarkup
 from .models import UserSettings
 from telegram import Update
 from telegram.ext import ContextTypes
-from django.http import HttpResponse
+from django.http import HttpResponse, JsonResponse
+import json
+from django.views.decorators.csrf import csrf_exempt
+
+
+@csrf_exempt
+def telegram_webhook(request):
+    if request.method == "POST":
+        try:
+            update = json.loads(request.body.decode('utf-8'))
+            print(update)
+
+            if "message" in update:
+                chat_id = update["message"]["chat"]["id"]
+                text = update["message"]["text"]
+
+                print(f"Отримано повідомлення: {text} від чату {chat_id}")
+
+            return JsonResponse({"ok": True})
+        except Exception as e:
+            print(f"Error processing update: {e}")
+            return JsonResponse({"ok": False, "error": str(e)}, status=400)
+    else:
+        return JsonResponse({"error": "Invalid method"}, status=403)
 
 
 def home(request):

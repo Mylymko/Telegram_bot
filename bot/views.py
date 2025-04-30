@@ -5,28 +5,26 @@ from telegram.ext import ContextTypes
 from django.http import HttpResponse, JsonResponse
 import json
 from django.views.decorators.csrf import csrf_exempt
+import os
+from telegram.ext import Application
 
+TOKEN = os.environ.get("TELEGRAM_TOKEN")
+application = Application.builder().token(TOKEN).build()
 
 @csrf_exempt
 def telegram_webhook(request):
     if request.method == "POST":
         try:
-            update = json.loads(request.body.decode('utf-8'))
-            print(update)
+            update = Update.de_json(json.loads(request.body.decode("utf-8")), application.bot)
+            application.process_update(update)
 
-            if "message" in update:
-                chat_id = update["message"]["chat"]["id"]
-                text = update["message"]["text"]
-
-                print(f"Отримано повідомлення: {text} від чату {chat_id}")
-
+            print(f"Отримано повідомлення: {update.message.text} від чату {update.message.chat_id}")
             return JsonResponse({"ok": True})
         except Exception as e:
             print(f"Error processing update: {e}")
             return JsonResponse({"ok": False, "error": str(e)}, status=400)
     else:
         return JsonResponse({"error": "Invalid method"}, status=403)
-
 
 def home(request):
     return HttpResponse("Welcome to my Telegram Bot!")

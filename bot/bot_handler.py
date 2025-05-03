@@ -1,15 +1,37 @@
 from telegram import Update
-from telegram.ext import ApplicationBuilder, CommandHandler, ContextTypes
+from telegram.ext import Application, CommandHandler, ContextTypes, CallbackContext
 import requests
 from decouple import config
 from libretranslatepy import LibreTranslateAPI
 import openai
 import asyncio
 import random
-from .models import TelegramUser
+from .models import TelegramUser, BotLog
 from .views import settings
 from asgiref.sync import sync_to_async
 from bs4 import BeautifulSoup
+import logging
+
+
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
+
+
+TOKEN = config('TELEGRAM_TOKEN')
+WEATHER_API_KEY = config('WEATHER_API_KEY')
+NEWS_API_KEY = config('NEWS_API_KEY')
+openai.api_key = config('OPENAI_API_KEY')
+
+translator = LibreTranslateAPI("https://libretranslate.com")
+
+
+def log_bot_command(user: str, command: str):
+    """ Логує виконану команду в базу даних.
+    Args:
+        user (str): Ідентифікатор користувача.
+        command (str): Назва команди."""
+    BotLog.objects.create(user=user, command=command)
+
 
 
 async def remind(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -23,27 +45,33 @@ async def remind(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await update.message.reply_text("Використання: /remind <час_у_секундуах> <повідомлення>")
 
 
-TOKEN = config('TELEGRAM_TOKEN')
-WEATHER_API_KEY = config('WEATHER_API_KEY')
-NEWS_API_KEY = config('NEWS_API_KEY')
-openai.api_key = config('OPENAI_API_KEY')
+async def start(update: Update, context: CallbackContext):
+    """
+    Команда /start
+    """
+    user = update.message.from_user
+    await update.message.reply_text(f"Привіт, {user.first_name}! Я твій Telegram-бот.")
+    log_bot_command(user.id, "/start")
 
-translator = LibreTranslateAPI("https://libretranslate.com")
 
-
-async def start(update, context):
-    user, created = await sync_to_async(TelegramUser.objects.get_or_create)(
-        chat_id=update.effective_user.id,
-        defaults={
-            "first_name": update.effective_user.first_name,
-            "last_name": update.effective_user.last_name,
-            "username": update.effective_user.username,
-        },
-    )
-    if created:
-        await update.message.reply_text(f"Привіт, {user.first_name}! Ви успішно зареєстровані.")
-    else:
-        await update.message.reply_text(f"Ласкаво просимо назад, {user.first_name}!")
+async def help_command(update: Update, context: CallbackContext):
+    """
+    Команда /help
+    """
+    help_text = {
+        '/start': 'Почати роботу з ботом',
+        '/translate': 'Перекласти текст',
+        '/weather': 'Дізнатися прогноз погоди',
+        '/news': 'Останні новини',
+        '/chat': 'Поговорити з ChatGPT',
+        '/currency': 'Отримати курс валют',
+        '/quote': 'Отримати випадкову цитату',
+        '/remind': 'Створити нагадування',
+        '/guess': 'Гра "Вгадай число"',
+        '/processfile': 'Обробити файл (наприклад, аналіз)',
+        '/settings': 'Налаштувати параметри',
+    }
+    await update.message.reply_text(help_text)
 
 
 async def weather(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -195,51 +223,23 @@ async def process_file(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text(f"У вашому файлі {word_count} слів.")
 
 
-async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    print("✅ Виконання help_command!")
-    """
-    Обробляє команду /help. Відправляє список доступних команд.
-    """
-    commands_description = {
-        '/start': 'Почати роботу з ботом',
-        '/translate': 'Перекласти текст',
-        '/weather': 'Дізнатися прогноз погоди',
-        '/news': 'Останні новини',
-        '/chat': 'Поговорити з ChatGPT',
-        '/currency': 'Отримати курс валют',
-        '/quote': 'Отримати випадкову цитату',
-        '/remind': 'Створити нагадування',
-        '/guess': 'Гра "Вгадай число"',
-        '/processfile': 'Обробити файл (наприклад, аналіз)',
-        '/settings': 'Налаштувати параметри',
-    }
-
-    help_text = "🤖 <b>Список доступних команд:</b>\n"
-    for command, description in commands_description.items():
-        help_text += f"{command} — {description}\n"
-
-    await update.message.reply_text(help_text, parse_mode="HTML")
-
-
 async def run_bot():
-    try:
-        app = ApplicationBuilder().token(TOKEN).build()
+    """ Запускає бота."""
+    application = Application.builder().token(TOKEN).build()
 
-        app.add_handler(CommandHandler('start', start))
-        app.add_handler(CommandHandler('translate', translate_command))
-        app.add_handler(CommandHandler('weather', weather))
-        app.add_handler(CommandHandler('news', news_command))
-        app.add_handler(CommandHandler('chat', chatgpt))
-        app.add_handler(CommandHandler('currency', currency))
-        app.add_handler(CommandHandler('quote', quote))
-        app.add_handler(CommandHandler('remind', remind))
-        app.add_handler(CommandHandler('guess', guess_number))
-        app.add_handler(CommandHandler('processfile', process_file))
-        app.add_handler(CommandHandler('settings', settings))
-        app.add_handler(CommandHandler('help', help_command))
 
-        print('Бот запущений...')
-        app.run_polling()
+    application.add_handler(CommandHandler('start', start))
+    application.add_handler(CommandHandler('translate', translate_command))
+    application.add_handler(CommandHandler('weather', weather))
+    application.add_handler(CommandHandler('news', news_command))
+    application.add_handler(CommandHandler('chat', chatgpt))
+    application.add_handler(CommandHandler('currency', currency))
+    application.add_handler(CommandHandler('quote', quote))
+    application.add_handler(CommandHandler('remind', remind))
+    application.add_handler(CommandHandler('guess', guess_number))
+    application.add_handler(CommandHandler('processfile', process_file))
+    application.add_handler(CommandHandler('settings', settings))
+    application.add_handler(CommandHandler('help', help_command))
 
-    except Exception as e:
-        print(f"Помилка запуску бота: {e}")
+    logger.info('Бот запущений...')
+    application.run_polling()

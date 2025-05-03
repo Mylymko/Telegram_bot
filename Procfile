@@ -1,1 +1,1 @@
-web: gunicorn my_telegram_bot.wsgi --workers=1 --log-file -
+web: gunicorn my_telegram_bot.wsgi --log-file -

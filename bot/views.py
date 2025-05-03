@@ -13,20 +13,17 @@ application = Application.builder().token(TOKEN).build()
 
 @csrf_exempt
 def telegram_webhook(request):
+    """ Django-based обробник webhook для Telegram."""
     if request.method == "POST":
         try:
             update = Update.de_json(json.loads(request.body.decode("utf-8")), application.bot)
             application.process_update(update)
-
-            print(f"Отримано повідомлення: {update.message.text} від чату {update.message.chat_id}")
             return JsonResponse({"ok": True})
         except Exception as e:
-            print(f"Error processing update: {e}")
             return JsonResponse({"ok": False, "error": str(e)}, status=400)
-    else:
-        return JsonResponse({"error": "Invalid method"}, status=403)
+    return JsonResponse({"error": "Invalid method"}, status=405)
 
-def home(request):
+def bot_home(request):
     return HttpResponse("Welcome to my Telegram Bot!")
 
 

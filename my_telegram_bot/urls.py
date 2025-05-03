@@ -15,15 +15,19 @@ Including another URLconf
     2. Add a URL to urlpatterns:  path('blog/', include('blog.urls'))
 """
 from django.http import HttpResponse
-from django.urls import path
-from bot.views import telegram_webhook
+from django.urls import path, include
+from bot.views import telegram_webhook, bot_home
+from django.contrib import admin
 
 
 def home(request):
     return HttpResponse("Hello, this is the homepage for the Telegram bot!")
 
-
 urlpatterns = [
-    path('', home, name='home'),
-    path('webhook/', telegram_webhook, name='telegram_webhook'),
+    path("", bot_home, name="home"),
+    path('admin/', admin.site.urls),
+
+    path('bot/', include('bot.urls')),
+    path("webhook/", telegram_webhook, name="telegram_webhook"),
 ]
+

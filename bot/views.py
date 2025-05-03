@@ -6,7 +6,6 @@ from django.http import HttpResponse, JsonResponse
 import json
 from django.views.decorators.csrf import csrf_exempt
 import os
-from telegram.ext import ApplicationBuilder
 import logging
 from bot.bot_handler import application
 

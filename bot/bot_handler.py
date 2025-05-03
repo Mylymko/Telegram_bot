@@ -25,7 +25,6 @@ openai.api_key = os.environ.get('OPENAI_API_KEY')
 translator = LibreTranslateAPI("https://libretranslate.com")
 
 application = Application.builder().token(TOKEN).build()
-application.initialize()
 
 
 def log_bot_command(user: str, command: str):

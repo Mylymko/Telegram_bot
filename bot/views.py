@@ -7,6 +7,9 @@ import json
 from django.views.decorators.csrf import csrf_exempt
 import os
 from telegram.ext import Application
+import logging
+from telegram.error import TelegramError
+
 
 TOKEN = os.environ.get("TELEGRAM_TOKEN")
 application = Application.builder().token(TOKEN).build()
@@ -16,11 +19,20 @@ async def telegram_webhook(request):
     """ Django-based обробник webhook для Telegram."""
     if request.method == "POST":
         try:
-            update = Update.de_json(json.loads(request.body.decode("utf-8")), application.bot)
+            body = request.body.decode("utf-8")
+            logging.info(f"Received Webhook Request Body: {body}")
+            update = Update.de_json(json.loads(body), application.bot)
             await application.process_update(update)
             return JsonResponse({"ok": True})
+        except json.JSONDecodeError as e:
+            logging.error(f"Invalid JSON format: {str(e)}")
+            return JsonResponse({"ok": False, "error": "Invalid JSON"}, status=400)
+        except TelegramError as e:
+            logging.error(f"Telegram API Error: {str(e)}")
+            return JsonResponse({"ok": False, "error": "Telegram API Error"}, status=500)
         except Exception as e:
-            return JsonResponse({"ok": False, "error": str(e)}, status=400)
+            logging.error(f"Unhandled error: {str(e)}")
+            return JsonResponse({"ok": False, "error": str(e)}, status=500)
     return JsonResponse({"error": "Invalid method"}, status=405)
 
 def bot_home(request):

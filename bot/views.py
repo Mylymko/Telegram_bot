@@ -8,10 +8,10 @@ from django.views.decorators.csrf import csrf_exempt
 import os
 from telegram.ext import ApplicationBuilder
 import logging
+from bot.bot_handler import application
 
 
 TOKEN = os.environ.get("TELEGRAM_TOKEN")
-application = ApplicationBuilder().token(TOKEN).build()
 
 @csrf_exempt
 async def telegram_webhook(request):

@@ -1,5 +1,5 @@
 from telegram import Update
-from telegram.ext import Application, CommandHandler, ContextTypes, CallbackContext
+from telegram.ext import ApplicationBuilder, CommandHandler, ContextTypes, CallbackContext
 import requests
 from decouple import config
 from libretranslatepy import LibreTranslateAPI
@@ -8,7 +8,7 @@ import asyncio
 import random
 from .models import TelegramUser, BotLog
 from .views import settings
-from asgiref.sync import sync_to_async
+import os
 from bs4 import BeautifulSoup
 import logging
 
@@ -24,6 +24,7 @@ openai.api_key = config('OPENAI_API_KEY')
 
 translator = LibreTranslateAPI("https://libretranslate.com")
 
+application = ApplicationBuilder().token(TOKEN).build()
 
 def log_bot_command(user: str, command: str):
     """ Логує виконану команду в базу даних.
@@ -225,8 +226,7 @@ async def process_file(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 async def run_bot():
     """ Запускає бота."""
-    application = Application.builder().token(TOKEN).build()
-
+    application.run_polling()
 
     application.add_handler(CommandHandler('start', start))
     application.add_handler(CommandHandler('translate', translate_command))

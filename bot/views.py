@@ -12,12 +12,12 @@ TOKEN = os.environ.get("TELEGRAM_TOKEN")
 application = Application.builder().token(TOKEN).build()
 
 @csrf_exempt
-def telegram_webhook(request):
+async def telegram_webhook(request):
     """ Django-based обробник webhook для Telegram."""
     if request.method == "POST":
         try:
             update = Update.de_json(json.loads(request.body.decode("utf-8")), application.bot)
-            application.process_update(update)
+            await application.process_update(update)
             return JsonResponse({"ok": True})
         except Exception as e:
             return JsonResponse({"ok": False, "error": str(e)}, status=400)

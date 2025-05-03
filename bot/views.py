@@ -7,7 +7,7 @@ import json
 from django.views.decorators.csrf import csrf_exempt
 import os
 import logging
-from bot.bot_handler import application
+
 
 
 TOKEN = os.environ.get("TELEGRAM_TOKEN")
@@ -15,6 +15,7 @@ TOKEN = os.environ.get("TELEGRAM_TOKEN")
 @csrf_exempt
 async def telegram_webhook(request):
     """ Django-based обробник webhook для Telegram."""
+    from bot.bot_handler import application
     if request.method == "POST":
         try:
             body = request.body.decode('utf-8')

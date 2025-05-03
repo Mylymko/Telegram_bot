@@ -1,7 +1,6 @@
 from telegram import Update
 from telegram.ext import Application, CommandHandler, ContextTypes, CallbackContext
 import requests
-from decouple import config
 from libretranslatepy import LibreTranslateAPI
 import openai
 import asyncio

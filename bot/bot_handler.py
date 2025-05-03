@@ -1,5 +1,5 @@
 from telegram import Update
-from telegram.ext import ApplicationBuilder, CommandHandler, ContextTypes, CallbackContext
+from telegram.ext import Application, CommandHandler, ContextTypes, CallbackContext
 import requests
 from decouple import config
 from libretranslatepy import LibreTranslateAPI
@@ -17,14 +17,16 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 
-TOKEN = config('TELEGRAM_TOKEN')
-WEATHER_API_KEY = config('WEATHER_API_KEY')
-NEWS_API_KEY = config('NEWS_API_KEY')
-openai.api_key = config('OPENAI_API_KEY')
+TOKEN = os.environ.get('TELEGRAM_TOKEN')
+WEATHER_API_KEY = os.environ.get('WEATHER_API_KEY')
+NEWS_API_KEY = os.environ.get('NEWS_API_KEY')
+openai.api_key = os.environ.get('OPENAI_API_KEY')
 
 translator = LibreTranslateAPI("https://libretranslate.com")
 
-application = ApplicationBuilder().token(TOKEN).build()
+application = Application.builder().token(TOKEN).build()
+application.initialize()
+
 
 def log_bot_command(user: str, command: str):
     """ Логує виконану команду в базу даних.

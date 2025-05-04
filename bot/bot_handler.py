@@ -25,6 +25,22 @@ translator = LibreTranslateAPI("https://libretranslate.com")
 
 application = Application.builder().token(TOKEN).build()
 
+def run_bot():
+    PORT = int(os.environ.get("PORT", 8443))
+    WEBHOOK_URL = f"https://myalhelperbot-8b53fda80b6e.herokuapp.com/webhook/"
+    async def start(update, context):
+        await update.message.reply_text("Телеграм-бот запущено через вебхук!")
+
+    application.add_handler(CommandHandler('start', start))
+
+    logger.info("Запуск Telegram-бота через вебхук...")
+    application.run_webhook(
+        listen="0.0.0.0",
+        port=PORT,
+        url_path="webhook/",
+        webhook_url=WEBHOOK_URL
+    )
+
 
 def log_bot_command(user: str, command: str):
     """ Логує виконану команду в базу даних.

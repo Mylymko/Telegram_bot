@@ -1,16 +1,16 @@
 from telegram import Update
-from telegram.ext import Application, CommandHandler, ContextTypes, CallbackContext
+from telegram.ext import (Application, CommandHandler,
+                          ContextTypes, CallbackContext, MessageHandler, filters)
 import requests
 from libretranslatepy import LibreTranslateAPI
 import openai
 import asyncio
 import random
-from .models import TelegramUser, BotLog
-from .views import settings
+from .models import BotLog
 import os
 from bs4 import BeautifulSoup
 import logging
-
+from telegram import InlineKeyboardButton, InlineKeyboardMarkup
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -21,11 +21,13 @@ WEATHER_API_KEY = os.environ.get('WEATHER_API_KEY')
 NEWS_API_KEY = os.environ.get('NEWS_API_KEY')
 openai.api_key = os.environ.get('OPENAI_API_KEY')
 
-translator = LibreTranslateAPI("https://libretranslate.com")
-
 application = Application.builder().token(TOKEN).build()
 
-def run_bot():
+translator = LibreTranslateAPI("https://libretranslate.com")
+
+
+def run_webhook():
+    """Функція для запуску Telegram-бота через вебхук."""
     PORT = int(os.environ.get("PORT", 8443))
     WEBHOOK_URL = f"https://myalhelperbot-8b53fda80b6e.herokuapp.com/webhook/"
     async def start(update, context):
@@ -66,9 +68,7 @@ async def start(update: Update, context: CallbackContext):
     """
     Команда /start
     """
-    user = update.message.from_user
-    await update.message.reply_text(f"Привіт, {user.first_name}! Я твій Telegram-бот.")
-    log_bot_command(user.id, "/start")
+    await update.message.reply_text("Привіт! Я твій бот. Як я можу допомогти?")
 
 
 async def help_command(update: Update, context: CallbackContext):
@@ -92,55 +92,48 @@ async def help_command(update: Update, context: CallbackContext):
 
 
 async def weather(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    await _log_bot_command(update, context)
     city = ' '.join(context.args)
     if not city:
-        await update.message.reply_text('Введіть місто, щоб я міг надати прогноз погоди: /weather Київ')
+        await update.message.reply_text('Введіть місто: /weather Київ')
         return
 
     url = f'https://api.openweathermap.org/data/2.5/weather?q={city}&appid={WEATHER_API_KEY}&units=metric'
-    response = requests.get(url).json()
-    if response.get('main'):
-        temp = response['main']['temp']
-        description = response['weather'][0]['description']
-        await update.message.reply_text(f'Погода у {city}: {temp}°С, {description}.')
-    else:
-        await update.message.reply_text('Не вдалося знайти місто.')
+    try:
+        response = await asyncio.to_thread(requests.get, url)
+        data = response.json()
+        temp = data["main"]["temp"]
+        description = data["weather"][0]["description"]
+        await update.message.reply_text(f"У {city}: {temp}°C, {description}")
+    except Exception as e:
+        await update.message.reply_text(f"Не вдалося отримати прогноз: {e}")
 
 
-def fetch_bbc_ukraine_news():
+async def _fetch_bbc_news():
     url = "https://www.bbc.com/ukrainian"
     headers = {
-        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/115.0 Safari/537.36",
-        "Accept-Language": "uk-UA,uk;q=0.9,en;q=0.8",
+        "User-Agent": "Mozilla/5.0",
+        "Accept-Language": "uk-UA,uk;q=0.9,en;q=0.8"
     }
-
     try:
-        response = requests.get(url, headers=headers, timeout=10)
-        response.raise_for_status()  # Перевіряємо код статусу
-        soup = BeautifulSoup(response.text, "html.parser")
+        response = await asyncio.to_thread(requests.get, url, headers=headers, timeout=10)
+        response.raise_for_status()
 
+        soup = BeautifulSoup(response.text, "html.parser")
         news_items = soup.find_all("a", class_="ssrcss-11uk9hy-PromoLink e1f5wbog0", limit=5)
 
         if not news_items:
             return "Новини не знайдені. Можливо, структура сайту змінилася."
 
-        news_list = []
-        for item in news_items:
-            title = item.text.strip()  # Заголовок новини
-            link = "https://www.bbc.com" + item["href"]  # Повна URL новини
-            news_list.append(f"{title} - {link}")
+        return "\n\n".join([f"{item.text.strip()} - https://www.bbc.com{item['href']}" for item in news_items])
+    except Exception as e:
+        logger.error(f"Помилка отримання новин: {e}")
+        return "Сталася помилка під час отримання новин."
 
-        return "\n\n".join(news_list)
-
-    except requests.exceptions.RequestException as e:
-        return f"Помилка: {e}"
-
-
-bbc_news = fetch_bbc_ukraine_news()
-print(bbc_news)
 
 async def news_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    news = fetch_bbc_ukraine_news()
+    await _log_bot_command(update, context)
+    news = await _fetch_bbc_news()
     await update.message.reply_text(news)
 
 
@@ -239,11 +232,33 @@ async def process_file(update: Update, context: ContextTypes.DEFAULT_TYPE):
     word_count = len(text.split())
     await update.message.reply_text(f"У вашому файлі {word_count} слів.")
 
+async def settings(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    keyboard = [
+        [InlineKeyboardButton("🔤 Мова", callback_data='settings_language')],
+        [InlineKeyboardButton("🎨 Тема", callback_data='settings_theme')],
+    ]
+    await update.message.reply_text("Виберіть налаштування:", reply_markup=InlineKeyboardMarkup(keyboard))
 
-async def run_bot():
-    """ Запускає бота."""
-    application.run_polling()
 
+async def _log_bot_command(update: Update, context: CallbackContext):
+    """
+    Логування виконаної команди в базу даних.
+
+    Args:
+        update (Update): Телеграм-об'єкт оновлення з інформацією про команду.
+        context (CallbackContext): Контекст команди.
+    """
+    try:
+        user_id = update.effective_user.id
+        command_text = update.message.text
+
+        BotLog.objects.create(user=user_id, command=command_text)
+        logger.info(f"Command logged: user={user_id}, command={command_text}")
+    except Exception as e:
+        logger.error(f"Error while logging command: {e}")
+
+
+def add_handlers():
     application.add_handler(CommandHandler('start', start))
     application.add_handler(CommandHandler('translate', translate_command))
     application.add_handler(CommandHandler('weather', weather))
@@ -256,6 +271,10 @@ async def run_bot():
     application.add_handler(CommandHandler('processfile', process_file))
     application.add_handler(CommandHandler('settings', settings))
     application.add_handler(CommandHandler('help', help_command))
+    application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, _log_bot_command))
 
-    logger.info('Бот запущений...')
+def run_bot():
+    logger.info("Запуск Telegram бота...")
+    add_handlers()
     application.run_polling()
+

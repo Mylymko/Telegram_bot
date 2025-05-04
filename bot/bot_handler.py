@@ -24,9 +24,14 @@ NEWS_API_KEY = os.environ.get('NEWS_API_KEY')
 openai.api_key = os.environ.get('OPENAI_API_KEY')
 
 application = Application.builder().token(TOKEN).build()
-application.initialize()
 
 translator = LibreTranslateAPI("https://libretranslate.com")
+
+
+async def initialize_application():
+    """Ініціалізація Telegram Application перед запуском."""
+    logger.info("Initializing Telegram Application...")
+    await application.initialize()
 
 @csrf_exempt
 async def telegram_webhook(request):
@@ -55,20 +60,21 @@ async def telegram_webhook(request):
     return JsonResponse({"error": "Invalid request method"}, status=405)
 
 
-def run_webhook():
-    """Функція для запуску Telegram-бота через вебхук."""
+async def run_webhook():
+    """Запускає Telegram бота через вебхук."""
+    await initialize_application()
     PORT = int(os.environ.get("PORT", 8443))
-    WEBHOOK_URL = f"https://myalhelperbot-8b53fda80b6e.herokuapp.com/webhook/"
-    async def start(update, context):
-        await update.message.reply_text("Телеграм-бот запущено через вебхук!")
-
+    WEBHOOK_URL = f"https://{os.environ.get('myalhelperbot')}.myalhelperbot-8b53fda80b6e.herokuapp.com/webhook/"  # Генерація динамічного webhook URL
     logger.info("Запуск Telegram-бота через вебхук...")
+
+    await application.start()
     application.run_webhook(
         listen="0.0.0.0",
         port=PORT,
-        url_path="webhook/",
-        webhook_url=WEBHOOK_URL
+        webhook_url=WEBHOOK_URL,
+        stop_signals=None
     )
+
 
 
 def log_bot_command(user: str, command: str):
@@ -325,4 +331,6 @@ def add_handlers():
 add_handlers()
 
 if __name__ == "__main__":
-    run_webhook()
+    import asyncio
+
+    asyncio.run(run_webhook())

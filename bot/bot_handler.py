@@ -1,6 +1,6 @@
 from telegram import Update
 from telegram.ext import (Application, CommandHandler,
-                          ContextTypes, CallbackContext, MessageHandler, filters)
+                          ContextTypes, CallbackContext, MessageHandler,CallbackQueryHandler, filters)
 import requests
 from libretranslatepy import LibreTranslateAPI
 import openai
@@ -232,6 +232,16 @@ async def process_file(update: Update, context: ContextTypes.DEFAULT_TYPE):
     word_count = len(text.split())
     await update.message.reply_text(f"У вашому файлі {word_count} слів.")
 
+
+async def callback_query_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    query = update.callback_query
+    await query.answer()
+    if query.data == 'settings_language':
+        await query.edit_message_text(text="Обрано: Налаштування мови")
+    elif query.data == 'settings_theme':
+        await query.edit_message_text(text="Обрано: Налаштування теми")
+
+
 async def settings(update: Update, context: ContextTypes.DEFAULT_TYPE):
     keyboard = [
         [InlineKeyboardButton("🔤 Мова", callback_data='settings_language')],
@@ -272,6 +282,7 @@ def add_handlers():
     application.add_handler(CommandHandler('settings', settings))
     application.add_handler(CommandHandler('help', help_command))
     application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, _log_bot_command))
+    application.add_handler(CallbackQueryHandler(callback_query_handler))
 
 def run_bot():
     logger.info("Запуск Telegram бота...")

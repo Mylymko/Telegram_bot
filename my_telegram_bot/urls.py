@@ -16,8 +16,9 @@ Including another URLconf
 """
 from django.http import HttpResponse
 from django.urls import path, include
-from bot.views import telegram_webhook, bot_home
+from bot.views import bot_home
 from django.contrib import admin
+from bot.bot_handler import telegram_webhook
 
 
 def home(request):

@@ -8,8 +8,11 @@ https://docs.djangoproject.com/en/5.2/howto/deployment/wsgi/
 """
 
 import os
-
 from django.core.wsgi import get_wsgi_application
+import asyncio
+from bot.bot_handler import initialize_application
+
+asyncio.run(initialize_application())
 
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'my_telegram_bot.settings')
 

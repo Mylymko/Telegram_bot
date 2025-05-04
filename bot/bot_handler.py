@@ -44,10 +44,6 @@ async def telegram_webhook(request):
             update = Update.de_json(update_data, application.bot)
             logger.info(f"Telegram Update object created: {update}")
 
-            if not application.ready:
-                logger.error("Telegram Application is not ready!")
-                return JsonResponse({"error": "Application not initialized."}, status=500)
-
             await application.process_update(update)
             return JsonResponse({"ok": True})
 

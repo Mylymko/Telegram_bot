@@ -147,7 +147,6 @@ async def _fetch_bbc_news():
     try:
         response = await asyncio.to_thread(requests.get, url, headers=headers, timeout=10)
         response.raise_for_status()
-
         soup = BeautifulSoup(response.text, "html.parser")
         news_items = soup.find_all("a", class_="ssrcss-11uk9hy-PromoLink e1f5wbog0", limit=5)
 

@@ -29,15 +29,21 @@ translator = LibreTranslateAPI("https://libretranslate.com")
 
 
 async def initialize_application():
-    """Ініціалізація Telegram Application перед запуском."""
-    logger.info("Initializing Telegram Application...")
-    await application.initialize()
+    """
+    Ініціалізація Telegram Application перед запуском.
+    """
+    if not application.is_initialized:
+        await application.initialize()
+        await application.start()
+        # Лог основного підключення
+        print("Telegram Application successfully initialized and started!")
 
 @csrf_exempt
 async def telegram_webhook(request):
     """Обробник вебхука від Telegram."""
     if request.method == "POST":
         try:
+            await initialize_application()
             body = request.body.decode('utf-8')
             logger.info(f"Received Telegram Webhook: {body}")
 
@@ -64,7 +70,7 @@ async def run_webhook():
     """Запускає Telegram бота через вебхук."""
     await initialize_application()
     PORT = int(os.environ.get("PORT", 8443))
-    WEBHOOK_URL = f"https://{os.environ.get('myalhelperbot')}.myalhelperbot-8b53fda80b6e.herokuapp.com/webhook/"  # Генерація динамічного webhook URL
+    WEBHOOK_URL = f"https://myalhelperbot-8b53fda80b6e.herokuapp.com/webhook/"
     logger.info("Запуск Telegram-бота через вебхук...")
 
     await application.start()
@@ -72,9 +78,7 @@ async def run_webhook():
         listen="0.0.0.0",
         port=PORT,
         webhook_url=WEBHOOK_URL,
-        stop_signals=None
     )
-
 
 
 def log_bot_command(user: str, command: str):

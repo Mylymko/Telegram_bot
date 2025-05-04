@@ -36,14 +36,20 @@ async def telegram_webhook(request):
             body = request.body.decode('utf-8')
             logger.info(f"Received Telegram Webhook: {body}")
 
-            # Створення оновлення Telegram та передача його до обробника
-            update = Update.de_json(json.loads(body), application.bot)
-            await application.process_update(update)
+            try:
+                update_data = json.loads(body)
+            except json.JSONDecodeError as e:
+                logger.error(f"Failed to decode JSON: {e}")
+                return JsonResponse({"ok": False, "error": "Invalid JSON format"}, status=400)
 
+            update = Update.de_json(update_data, application.bot)
+            logger.info(f"Telegram Update object created: {update}")
+
+            await application.process_update(update)
             return JsonResponse({"ok": True})
 
         except Exception as e:
-            logger.error(f"Error while handling Telegram webhook: {e}")
+            logger.error(f"Error while handling Telegram webhook: {e}", exc_info=True)
             return JsonResponse({"ok": False, "error": str(e)}, status=500)
 
     return JsonResponse({"error": "Invalid request method"}, status=405)

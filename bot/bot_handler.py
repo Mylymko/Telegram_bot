@@ -11,6 +11,9 @@ import os
 from bs4 import BeautifulSoup
 import logging
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup
+from django.http import JsonResponse
+import json
+from django.views.decorators.csrf import csrf_exempt
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -24,6 +27,26 @@ openai.api_key = os.environ.get('OPENAI_API_KEY')
 application = Application.builder().token(TOKEN).build()
 
 translator = LibreTranslateAPI("https://libretranslate.com")
+
+@csrf_exempt
+async def telegram_webhook(request):
+    """ Django-based обробник webhook для Telegram."""
+    if request.method == "POST":
+        try:
+            body = request.body.decode('utf-8')
+            logger.info(f"Received Telegram Webhook: {body}")
+
+            # Створення оновлення Telegram та передача його до обробника
+            update = Update.de_json(json.loads(body), application.bot)
+            await application.process_update(update)
+
+            return JsonResponse({"ok": True})
+
+        except Exception as e:
+            logger.error(f"Error while handling Telegram webhook: {e}")
+            return JsonResponse({"ok": False, "error": str(e)}, status=500)
+
+    return JsonResponse({"error": "Invalid request method"}, status=405)
 
 
 def run_webhook():

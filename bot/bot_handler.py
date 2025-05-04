@@ -24,6 +24,7 @@ NEWS_API_KEY = os.environ.get('NEWS_API_KEY')
 openai.api_key = os.environ.get('OPENAI_API_KEY')
 
 application = Application.builder().token(TOKEN).build()
+application.initialize()
 
 translator = LibreTranslateAPI("https://libretranslate.com")
 
@@ -322,4 +323,5 @@ def add_handlers():
     application.add_handler(CallbackQueryHandler(callback_query_handler))
 
 add_handlers()
+application.run_webhook()
 

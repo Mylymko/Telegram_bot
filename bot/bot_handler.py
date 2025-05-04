@@ -32,18 +32,20 @@ async def initialize_application():
     """
     Ініціалізація Telegram Application перед запуском.
     """
-    if not application.is_initialized:
+    try:
         await application.initialize()
         await application.start()
-        # Лог основного підключення
-        print("Telegram Application successfully initialized and started!")
+
+        logger.info("Telegram Application успішно ініціалізовано та запущено!")
+    except Exception as e:
+        logger.error(f"Сталася помилка під час ініціалізації: {e}", exc_info=True)
+
 
 @csrf_exempt
 async def telegram_webhook(request):
     """Обробник вебхука від Telegram."""
     if request.method == "POST":
         try:
-            await initialize_application()
             body = request.body.decode('utf-8')
             logger.info(f"Received Telegram Webhook: {body}")
 
@@ -58,12 +60,11 @@ async def telegram_webhook(request):
 
             await application.process_update(update)
             return JsonResponse({"ok": True})
-
         except Exception as e:
             logger.error(f"Error while handling Telegram webhook: {e}", exc_info=True)
             return JsonResponse({"ok": False, "error": str(e)}, status=500)
-
-    return JsonResponse({"error": "Invalid request method"}, status=405)
+    else:
+        return JsonResponse({"error": "Invalid request method"}, status=405)
 
 
 async def run_webhook():

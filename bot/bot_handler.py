@@ -59,7 +59,7 @@ async def help_command(update: Update, context: CallbackContext):
     """
     Команда /help
     """
-    help_text = {
+    help_text = "\n".join([f"{cmd}: {desc}" for cmd, desc in {
         '/start': 'Почати роботу з ботом',
         '/translate': 'Перекласти текст',
         '/weather': 'Дізнатися прогноз погоди',
@@ -71,7 +71,7 @@ async def help_command(update: Update, context: CallbackContext):
         '/guess': 'Гра "Вгадай число"',
         '/processfile': 'Обробити файл (наприклад, аналіз)',
         '/settings': 'Налаштувати параметри',
-    }
+    }.items()])
     await update.message.reply_text(help_text)
 
 

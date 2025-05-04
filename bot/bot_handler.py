@@ -323,5 +323,6 @@ def add_handlers():
     application.add_handler(CallbackQueryHandler(callback_query_handler))
 
 add_handlers()
-application.run_webhook()
 
+if __name__ == "__main__":
+    run_webhook()

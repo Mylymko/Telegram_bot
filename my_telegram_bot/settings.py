@@ -34,6 +34,8 @@ DEBUG = os.environ.get('DEBUG') == 'True'
 MODE = os.environ.get('MODE', 'LOCAL')
 if MODE not in ['LOCAL', 'PROD']:
     raise Exception('MODE must be LOCAL or PROD')
+APPEND_SLASH = True
+
 
 ALLOWED_HOSTS = os.environ.get('ALLOWED_HOSTS', '*').split(',')
 
